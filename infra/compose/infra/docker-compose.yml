@@ -1,0 +1,129 @@
+# Infra 인스턴스: MySQL(main 3306) / MySQL(notification 3307) / Redis / RabbitMQ + node_exporter + db-backup
+# 데이터는 루트 볼륨의 /data 에 저장된다(별도 EBS 미사용).
+# 내구성은 db-backup 사이드카가 MySQL 덤프를 주기적으로 S3(backups/)에 올려 확보한다.
+name: dms-infra
+
+services:
+  mysql-main:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MAIN_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MAIN_DB_NAME:-prod_dms}
+      MYSQL_USER: ${DB_APP_USER:-dms}
+      MYSQL_PASSWORD: ${DB_APP_PASSWORD}
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - /data/mysql-main:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MAIN_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mysql-notification:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${NOTI_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${NOTI_DB_NAME:-prod_notification}
+      MYSQL_USER: ${DB_APP_USER:-dms}
+      MYSQL_PASSWORD: ${DB_APP_PASSWORD}
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3307:3306"
+    volumes:
+      - /data/mysql-notification:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${NOTI_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - /data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-dms}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      TZ: Asia/Seoul
+    ports:
+      - "5672:5672"    # AMQP
+      - "15672:15672"  # 관리 UI
+    volumes:
+      - /data/rabbitmq:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    restart: unless-stopped
+    pid: host
+    command: ["--path.rootfs=/host"]
+    volumes:
+      - /:/host:ro,rslave
+    ports:
+      - "9100:9100"
+
+  db-backup-main:
+    build: ./backup
+    image: dms-infra-db-backup
+    restart: unless-stopped
+    depends_on:
+      mysql-main:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql-main
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASSWORD: ${MAIN_ROOT_PASSWORD}
+      DB_NAME: ${MAIN_DB_NAME:-prod_dms}
+      S3_BUCKET: ${BACKUP_S3_BUCKET}
+      S3_PREFIX: ${BACKUP_S3_PREFIX:-backups/mysql}
+      AWS_REGION: ${BACKUP_AWS_REGION:-ap-northeast-2}
+      BACKUP_INTERVAL: ${BACKUP_INTERVAL:-86400}
+      TZ: Asia/Seoul
+
+  db-backup-notification:
+    build: ./backup
+    image: dms-infra-db-backup
+    restart: unless-stopped
+    depends_on:
+      mysql-notification:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql-notification
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASSWORD: ${NOTI_ROOT_PASSWORD}
+      DB_NAME: ${NOTI_DB_NAME:-prod_notification}
+      S3_BUCKET: ${BACKUP_S3_BUCKET}
+      S3_PREFIX: ${BACKUP_S3_PREFIX:-backups/mysql}
+      AWS_REGION: ${BACKUP_AWS_REGION:-ap-northeast-2}
+      BACKUP_INTERVAL: ${BACKUP_INTERVAL:-86400}
+      TZ: Asia/Seoul
