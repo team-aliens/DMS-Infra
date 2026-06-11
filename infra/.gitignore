@@ -1,0 +1,25 @@
+# Terraform
+**/.terraform/*
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# 변수/시크릿 (예제 파일만 커밋)
+*.tfvars
+!*.tfvars.example
+
+# 백엔드 설정 (예제만 커밋)
+backend.tf
+
+# 플랜 산출물
+*.tfplan
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# docker compose 시크릿 (예제만 커밋)
+**/.env
+!**/.env.example
