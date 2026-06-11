@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# DMS 인스턴스 공통 부트스트랩 (Ubuntu 22.04)
+# 역할: ${role}
+# 실제 애플리케이션 배포는 CD 파이프라인이 담당한다. 여기서는 런타임만 준비.
+set -euxo pipefail
+
+export DEBIAN_FRONTEND=noninteractive
+timedatectl set-timezone Asia/Seoul || true
+
+# 프라이빗 인스턴스는 게이트웨이 NAT가 준비될 때까지 아웃바운드를 기다린다
+case "${role}" in
+  main | notification | infra | monitoring)
+    for i in $(seq 1 30); do
+      if curl -fsS --max-time 5 https://download.docker.com/ >/dev/null 2>&1; then break; fi
+      echo "waiting for outbound connectivity via NAT ($i)..."
+      sleep 10
+    done
+    ;;
+esac
+
+apt-get update -y
+apt-get install -y ca-certificates curl gnupg lsb-release jq
+
+# -------------------- Docker --------------------
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+chmod a+r /etc/apt/keyrings/docker.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+  > /etc/apt/sources.list.d/docker.list
+apt-get update -y
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+systemctl enable --now docker
+usermod -aG docker ubuntu || true
+
+# -------------------- SSM Agent (SSH 없이 접속) --------------------
+snap install amazon-ssm-agent --classic || true
+systemctl enable --now snap.amazon-ssm-agent.amazon-ssm-agent.service || true
+
+# -------------------- 역할별 설정 --------------------
+case "${role}" in
+  gateway)
+    apt-get install -y nginx iptables-persistent
+    systemctl enable --now nginx
+
+    # 이 인스턴스를 프라이빗 서브넷의 NAT로 사용 (EIP 1개로 아웃바운드 공유)
+    echo 'net.ipv4.ip_forward=1' > /etc/sysctl.d/99-nat.conf
+    sysctl -p /etc/sysctl.d/99-nat.conf
+    IFACE=$(ip route | awk '/default/ {print $5; exit}')
+    iptables -t nat -C POSTROUTING -o "$IFACE" -j MASQUERADE 2>/dev/null \
+      || iptables -t nat -A POSTROUTING -o "$IFACE" -j MASQUERADE
+    netfilter-persistent save
+    ;;
+
+  infra)
+    # DB/메시지큐 데이터는 루트 볼륨의 /data 에 둔다(별도 EBS 미사용).
+    # 내구성은 별도 EBS 대신 "주기적 mysqldump -> S3(backups/)"로 확보한다.
+    #   - 백업 잡: compose/infra 의 db-backup 사이드카
+    #   - S3 인증: 인스턴스 프로파일(iam_infra) + IMDS(hop=2)
+    mkdir -p /data
+    ;;
+
+  main|notification|monitoring)
+    : # 추가 패키지 없음 (컨테이너로 구동)
+    ;;
+esac
+
+echo "bootstrap(${role}) done"
