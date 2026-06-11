@@ -1,0 +1,40 @@
+# Gateway 인스턴스: Nginx(80/443) -> dms-gateway(8080) + node_exporter
+name: dms-gateway
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      # HTTPS 사용 시 인증서 마운트 (certbot 등)
+      # - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - gateway
+
+  gateway:
+    image: ${GATEWAY_IMAGE}
+    restart: unless-stopped
+    environment:
+      PROFILE: prod
+      SPRING_PROFILES_ACTIVE: prod
+      MAIN_SERVICE_URL: ${MAIN_SERVICE_URL}
+      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL}
+      SECRET_KEY: ${SECRET_KEY}
+      PASSPORT_SECRET_KEY: ${PASSPORT_SECRET_KEY}
+      TZ: Asia/Seoul
+    expose:
+      - "8080"
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    restart: unless-stopped
+    pid: host
+    command: ["--path.rootfs=/host"]
+    volumes:
+      - /:/host:ro,rslave
+    ports:
+      - "9100:9100"

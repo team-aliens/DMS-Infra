@@ -1,0 +1,24 @@
+# Notification 인스턴스: dms-notification(8082) + node_exporter
+name: dms-notification
+
+services:
+  notification:
+    image: ${NOTIFICATION_IMAGE}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PROFILE: prod
+      SPRING_PROFILES_ACTIVE: prod
+      TZ: Asia/Seoul
+    ports:
+      - "8082:8082"
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    restart: unless-stopped
+    pid: host
+    command: ["--path.rootfs=/host"]
+    volumes:
+      - /:/host:ro,rslave
+    ports:
+      - "9100:9100"
