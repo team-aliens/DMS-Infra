@@ -78,27 +78,27 @@ variable "backup_retention_days" {
 # -------------------- 인스턴스 타입 --------------------
 variable "instance_type_gateway" {
   type    = string
-  default = "t3.micro"
+  default = "t3.small"
 }
 
 variable "instance_type_main" {
   type    = string
-  default = "t3.micro"
+  default = "t3.medium"
 }
 
 variable "instance_type_notification" {
   type    = string
-  default = "t3.micro"
+  default = "t3.medium"
 }
 
 variable "instance_type_infra" {
   type    = string
-  default = "t3.micro"
+  default = "t3.medium"
 }
 
 variable "instance_type_monitoring" {
   type    = string
-  default = "t3.micro"
+  default = "t3.medium"
 }
 
 # -------------------- 볼륨 --------------------

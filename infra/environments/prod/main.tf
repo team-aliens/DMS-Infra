@@ -142,7 +142,7 @@ module "main" {
   name                 = "${local.name_prefix}-main"
   ami_id               = local.ami_id
   instance_type        = var.instance_type_main
-  subnet_id            = module.network.private_subnet_ids[0]
+  subnet_id            = module.network.private_subnet_ids
   security_group_ids   = [module.security.main_sg_id]
   key_name             = var.key_name
   iam_instance_profile = module.iam_app.instance_profile_name
