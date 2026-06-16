@@ -7,6 +7,14 @@ terraform {
       version = "~> 5.0"
     }
   }
+
+  cloud {
+    organization = "team-dms"
+
+    workspaces {
+      name = "dms"
+    }
+  }
 }
 
 provider "aws" {
