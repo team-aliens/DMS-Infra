@@ -66,6 +66,20 @@ module "s3" {
 }
 
 # ============================================================
+# ECR (CD 가 빌드한 서비스 이미지를 push/pull)
+# ============================================================
+module "ecr" {
+  source = "../../modules/ecr"
+
+  repositories = [
+    "dms-gateway",
+    "dms-main",
+    "dms-notification",
+  ]
+  tags = local.common_tags
+}
+
+# ============================================================
 # IAM 인스턴스 프로파일
 #  - app : SSM + S3 (Main 전용)
 #  - base: SSM 만 (게이트웨이/노티/인프라/모니터링)
@@ -73,17 +87,19 @@ module "s3" {
 module "iam_app" {
   source = "../../modules/iam"
 
-  name          = "${local.name_prefix}-app"
-  enable_s3     = true
-  s3_bucket_arn = module.s3.bucket_arn
-  tags          = local.common_tags
+  name            = "${local.name_prefix}-app"
+  enable_s3       = true
+  s3_bucket_arn   = module.s3.bucket_arn
+  enable_ecr_read = true # main: ECR 이미지 pull
+  tags            = local.common_tags
 }
 
 module "iam_base" {
   source = "../../modules/iam"
 
-  name = "${local.name_prefix}-base"
-  tags = local.common_tags
+  name            = "${local.name_prefix}-base"
+  enable_ecr_read = true # gateway/notification/monitoring: ECR pull
+  tags            = local.common_tags
 }
 
 # infra : SSM + S3(backups/ prefix 한정) — DB 덤프 업로드용

@@ -20,6 +20,14 @@ resource "aws_iam_role_policy_attachment" "ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+# ECR pull (CD가 푸시한 이미지를 docker pull)
+resource "aws_iam_role_policy_attachment" "ecr_read" {
+  count = var.enable_ecr_read ? 1 : 0
+
+  role       = aws_iam_role.this.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
 # -------------------- S3 접근 (선택) --------------------
 # s3_prefix 가 지정되면 해당 prefix 하위로만 접근을 제한한다(최소 권한).
 data "aws_iam_policy_document" "s3" {

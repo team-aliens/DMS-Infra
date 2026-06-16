@@ -32,6 +32,11 @@ output "s3_bucket" {
   value = module.s3.bucket_id
 }
 
+output "ecr_repository_urls" {
+  description = "서비스별 ECR 레포 URL (CD push 대상)"
+  value       = module.ecr.repository_urls
+}
+
 output "ssm_access_hint" {
   description = "프라이빗 인스턴스 접속 방법"
   value       = "aws ssm start-session --target <instance-id>  (SSH 없이 접속 가능)"

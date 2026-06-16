@@ -9,6 +9,12 @@ variable "enable_s3" {
   default     = false
 }
 
+variable "enable_ecr_read" {
+  description = "ECR pull 권한(AmazonEC2ContainerRegistryReadOnly) 추가 여부. CD 이미지를 받는 인스턴스에 필요"
+  type        = bool
+  default     = false
+}
+
 variable "s3_bucket_arn" {
   description = "접근을 허용할 S3 버킷 ARN. enable_s3 = true 일 때 사용"
   type        = string
