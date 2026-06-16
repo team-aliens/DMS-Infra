@@ -37,9 +37,10 @@ resource "aws_ecr_lifecycle_policy" "this" {
         rulePriority = 2
         description  = "최근 ${var.keep_last_images}개 이미지만 보관"
         selection = {
-          tagStatus   = "tagged"
-          countType   = "imageCountMoreThan"
-          countNumber = var.keep_last_images
+          tagStatus      = "tagged"
+          tagPatternList = ["*"]
+          countType      = "imageCountMoreThan"
+          countNumber    = var.keep_last_images
         }
         action = { type = "expire" }
       }
