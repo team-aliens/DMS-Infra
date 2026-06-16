@@ -90,7 +90,7 @@ module "iam_app" {
   name            = "${local.name_prefix}-app"
   enable_s3       = true
   s3_bucket_arn   = module.s3.bucket_arn
-  enable_ecr_read = true # main: ECR 이미지 pull
+  enable_ecr_read = true
   tags            = local.common_tags
 }
 
@@ -158,7 +158,7 @@ module "main" {
   name                 = "${local.name_prefix}-main"
   ami_id               = local.ami_id
   instance_type        = var.instance_type_main
-  subnet_id            = module.network.private_subnet_ids
+  subnet_id            = module.network.private_subnet_ids[0]
   security_group_ids   = [module.security.main_sg_id]
   key_name             = var.key_name
   iam_instance_profile = module.iam_app.instance_profile_name
