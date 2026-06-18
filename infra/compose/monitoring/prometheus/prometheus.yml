@@ -7,8 +7,6 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
-  # 각 인스턴스의 node_exporter (프라이빗 IP:9100)
-  # terraform output 으로 IP 확인 후 교체할 것.
   - job_name: node
     static_configs:
       - targets:
@@ -16,13 +14,7 @@ scrape_configs:
           - "MAIN_IP:9100"
           - "NOTIFICATION_IP:9100"
           - "INFRA_IP:9100"
-          - "localhost:9100"        # monitoring 자신
+          - "localhost:9100"        
         labels:
           env: prod
 
-  # (선택) Spring Actuator Prometheus 엔드포인트
-  # micrometer-registry-prometheus 가 활성화돼 있으면 사용
-  # - job_name: dms-apps
-  #   metrics_path: /actuator/prometheus
-  #   static_configs:
-  #     - targets: ["MAIN_IP:8081", "NOTIFICATION_IP:8082"]

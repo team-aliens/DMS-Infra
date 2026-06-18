@@ -39,7 +39,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
   }
 }
 
-# DB 백업 등 prefix 하위 객체의 자동 만료 (비용 관리)
 resource "aws_s3_bucket_lifecycle_configuration" "backups" {
   count  = var.backup_prefix != "" && var.backup_retention_days > 0 ? 1 : 0
   bucket = aws_s3_bucket.this.id

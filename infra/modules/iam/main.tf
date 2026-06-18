@@ -14,7 +14,6 @@ resource "aws_iam_role" "this" {
   tags               = var.tags
 }
 
-# SSM Session Manager (SSH 없이 인스턴스 접속/관리)
 resource "aws_iam_role_policy_attachment" "ssm" {
   role       = aws_iam_role.this.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
@@ -28,8 +27,6 @@ resource "aws_iam_role_policy_attachment" "ecr_read" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
-# -------------------- S3 접근 (선택) --------------------
-# s3_prefix 가 지정되면 해당 prefix 하위로만 접근을 제한한다(최소 권한).
 data "aws_iam_policy_document" "s3" {
   count = var.enable_s3 ? 1 : 0
 

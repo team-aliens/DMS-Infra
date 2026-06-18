@@ -1,10 +1,9 @@
 locals {
-  # 앱/미들웨어 포트 (애플리케이션 설정에서 확인된 값)
   port_http      = 80
   port_https     = 443
   port_ssh       = 22
-  port_main      = 8081 # dms-main
-  port_noti      = 8082 # dms-notification
+  port_main      = 8081
+  port_noti      = 8082
   port_mysql      = 3306
   port_mysql_noti = 3307
   port_redis     = 6379
@@ -12,12 +11,9 @@ locals {
   port_rabbit_ui = 15672
   port_grafana   = 3000
   port_prom      = 9090
-  port_node_exp  = 9100 # node_exporter (모니터링 스크레이프 대상)
+  port_node_exp  = 9100 # node_exporter
 }
 
-# ============================================================
-# Security Groups (역할별)
-# ============================================================
 resource "aws_security_group" "gateway" {
   name        = "${var.name_prefix}-gateway-sg"
   description = "Gateway/Nginx - public facing"
@@ -53,9 +49,6 @@ resource "aws_security_group" "monitoring" {
   tags        = merge(var.tags, { Name = "${var.name_prefix}-monitoring-sg" })
 }
 
-# ============================================================
-# Egress: 모든 SG는 아웃바운드 전체 허용
-# ============================================================
 resource "aws_vpc_security_group_egress_rule" "all" {
   for_each = {
     gateway      = aws_security_group.gateway.id
@@ -71,9 +64,6 @@ resource "aws_vpc_security_group_egress_rule" "all" {
   description       = "allow all egress"
 }
 
-# ============================================================
-# Gateway ingress
-# ============================================================
 resource "aws_vpc_security_group_ingress_rule" "gw_http" {
   security_group_id = aws_security_group.gateway.id
   ip_protocol       = "tcp"
@@ -103,7 +93,6 @@ resource "aws_vpc_security_group_ingress_rule" "gw_ssh" {
   description       = "SSH from admin"
 }
 
-# 게이트웨이 인스턴스를 NAT로 쓸 때 프라이빗 서브넷의 모든 트래픽을 수용
 resource "aws_vpc_security_group_ingress_rule" "gw_from_vpc" {
   security_group_id = aws_security_group.gateway.id
   ip_protocol       = "-1"
@@ -111,9 +100,6 @@ resource "aws_vpc_security_group_ingress_rule" "gw_from_vpc" {
   description       = "internal/NAT traffic from VPC"
 }
 
-# ============================================================
-# Main ingress
-# ============================================================
 resource "aws_vpc_security_group_ingress_rule" "main_app" {
   security_group_id            = aws_security_group.main.id
   ip_protocol                  = "tcp"
@@ -141,9 +127,6 @@ resource "aws_vpc_security_group_ingress_rule" "main_ssh" {
   description                  = "SSH via gateway (bastion)"
 }
 
-# ============================================================
-# Notification ingress
-# ============================================================
 resource "aws_vpc_security_group_ingress_rule" "noti_app" {
   security_group_id            = aws_security_group.notification.id
   ip_protocol                  = "tcp"
@@ -171,10 +154,6 @@ resource "aws_vpc_security_group_ingress_rule" "noti_ssh" {
   description                  = "SSH via gateway (bastion)"
 }
 
-# ============================================================
-# Infra ingress (MySQL / Redis / RabbitMQ)
-# main, notification 두 SG에서 각각 허용
-# ============================================================
 locals {
   infra_clients = {
     main = aws_security_group.main.id
@@ -237,10 +216,6 @@ resource "aws_vpc_security_group_ingress_rule" "infra_ssh" {
   description                  = "SSH via gateway (bastion)"
 }
 
-# ============================================================
-# Monitoring ingress
-# Grafana / Prometheus UI 는 게이트웨이(리버스 프록시) 또는 관리자에서
-# ============================================================
 resource "aws_vpc_security_group_ingress_rule" "mon_grafana_gw" {
   security_group_id            = aws_security_group.monitoring.id
   ip_protocol                  = "tcp"

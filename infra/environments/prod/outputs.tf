@@ -37,6 +37,17 @@ output "ecr_repository_urls" {
   value       = module.ecr.repository_urls
 }
 
+output "instance_ids" {
+  description = "SSM 접속용 인스턴스 ID 목록"
+  value = {
+    gateway      = module.gateway.id
+    main         = module.main.id
+    notification  = module.notification.id
+    infra        = module.infra.id
+    monitoring   = module.monitoring.id
+  }
+}
+
 output "ssm_access_hint" {
   description = "프라이빗 인스턴스 접속 방법"
   value       = "aws ssm start-session --target <instance-id>  (SSH 없이 접속 가능)"
