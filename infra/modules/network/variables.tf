@@ -25,12 +25,6 @@ variable "private_subnet_cidrs" {
   default     = []
 }
 
-variable "enable_nat_gateway" {
-  description = "관리형 NAT Gateway 생성 여부. false면 프라이빗 서브넷 기본 라우트는 호출 측(루트 모듈)에서 게이트웨이 인스턴스로 연결"
-  type        = bool
-  default     = false
-}
-
 variable "tags" {
   description = "공통 태그"
   type        = map(string)
