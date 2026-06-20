@@ -9,7 +9,7 @@ variable "ami_id" {
 }
 
 variable "instance_type" {
-  description = "인스턴스 타입 (예: t3.medium)"
+  description = "인스턴스 타입"
   type        = string
 }
 
