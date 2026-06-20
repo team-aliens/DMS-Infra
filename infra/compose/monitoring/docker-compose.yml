@@ -1,4 +1,3 @@
-# Monitoring 인스턴스: Prometheus(9090) + Grafana(3000) + node_exporter
 name: dms-monitoring
 
 services:
