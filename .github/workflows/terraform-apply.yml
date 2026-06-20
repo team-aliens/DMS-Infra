@@ -20,7 +20,7 @@ jobs:
       TF_IN_AUTOMATION: true
       TF_CLOUD_ORGANIZATION: "dms-prod"
       TF_WORKSPACE: "dms"
-      CONFIG_DIRECTORY: "./"
+      CONFIG_DIRECTORY: "./infra/environments/prod"
 
     steps:
       - uses: actions/checkout@v4
